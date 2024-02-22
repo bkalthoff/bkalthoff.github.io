@@ -43,6 +43,11 @@
                             img.src = `https://oldschool.runescape.wiki${src.startsWith('/') ? '' : '/'}${src}`;
                         }
                     });
+                    // Correct link paths
+                    doc.querySelectorAll('.wikitable.sortable.filterable.item-drops a').forEach(link => {
+                        const href = link.getAttribute('href');
+                        link.href = href.startsWith('http') ? href : `https://oldschool.runescape.wiki${href}`;
+                    });
 
                     // Extract tables and modify them
                     const tables = doc.querySelectorAll('.wikitable.sortable.filterable.item-drops');
@@ -85,18 +90,13 @@
                         textbox.style.width = '25%';
                         textbox.style.height = '100px';
                         textbox.style.marginTop = '20px';
-                        // insert the textbox after the url input and button
-                        // check if the textbox already exists and remove it if it does
                         const existingTextbox = document.getElementById('selectedItemsTextbox');
                         if (existingTextbox) {
                             existingTextbox.remove();
                         }
-                        // place the textbox after the Fetch and Modify Tables button
                         const button = document.querySelector('button');
                         button.parentNode.insertBefore(textbox, button.nextSibling);
                     }
-
-
 
                     // Display modified tables
                     const displayArea = document.getElementById('contentArea');
@@ -112,21 +112,21 @@
 
             function updateSelectedItems() {
                 const selectedItemsTextbox = document.getElementById('selectedItemsTextbox');
-                // Make sure to query only within the specific content area where your tables are located
                 const checkboxes = document.querySelectorAll('#contentArea .wikitable.sortable.filterable.item-drops input[type="checkbox"]:checked');
-                let items = [];
+                let itemNames = new Set();
+
                 checkboxes.forEach(checkbox => {
-                    // Assuming the item name is in the first cell after the checkbox, adjust if necessary
                     const row = checkbox.closest('tr');
-                    // This assumes the item name is in the second cell; adjust the index if necessary
-                    const itemCell = row.querySelector('td:nth-child(2)'); // Adjust if your item names are in a different column
+                    const itemCell = row.querySelector('td:nth-child(2) a');
+
                     if (itemCell) {
-                        const itemName = itemCell.textContent.trim();
-                        items.push(itemName);
+                        const itemName = itemCell.title || itemCell.textContent.trim();
+                        itemNames.add(itemName);
                     }
                 });
-                selectedItemsTextbox.value = items.join(', ');
+                selectedItemsTextbox.value = Array.from(itemNames).join(', ');
             }
+
         </script>
     </h1>
 </body>
