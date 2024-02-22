@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Fetcher and Modifier</title>
+    <!-- Stylesheets from RuneScape Wiki -->
+    <link rel="stylesheet"
+        href="https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=ext.cite.styles%7Cext.dismissableSiteNotice.styles%7Cext.embedVideo.styles%7Cext.visualEditor.desktopArticleTarget.noscript%7Cjquery.makeCollapsible.styles%7Cjquery.tablesorter.styles%7Cmediawiki.page.gallery.styles%7Cmediawiki.ui.button%7Cskins.vector.styles.legacy&only=styles&skin=vector">
+    <link rel="stylesheet"
+        href="https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=ext.gadget.headerTargetHighlight%2CstickyTableHeaders%2Cswitch-infobox-styles&only=styles&skin=vector" />
+    <link rel="stylesheet"
+        href="https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=site.styles&only=styles&skin=vector" />
+</head>
+
+<body>
+    <input type="text" id="urlInput" placeholder="Enter URL here">
+    <style>
+        #urlInput {
+            width: 25%;
+        }
+    </style>
+    <button onclick="fetchAndModifyTables()">Fetch and Modify Tables</button>
+    <div id="contentArea"></div>
+    <h1>
+        <script>
+            async function fetchAndModifyTables() {
+                const url = document.getElementById('urlInput').value;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const htmlString = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlString, 'text/html');
+
+                    // Correct image paths
+                    doc.querySelectorAll('img').forEach(img => {
+                        const src = img.getAttribute('src');
+                        if (src && !src.startsWith('http') && !src.startsWith('//')) {
+                            img.src = `https://oldschool.runescape.wiki${src.startsWith('/') ? '' : '/'}${src}`;
+                        }
+                    });
+
+                    // Extract tables and modify them
+                    const tables = doc.querySelectorAll('.wikitable.sortable.filterable.item-drops');
+                    let maxWidth = 0;
+                    tables.forEach((table, tableIndex) => {
+                        const rows = table.querySelectorAll('tr');
+                        // Add a checkbox to the header row for "select all" functionality
+                        if (rows.length > 0) {
+                            const headerCell = document.createElement('th');
+                            const headerCheckbox = document.createElement('input');
+                            headerCheckbox.type = 'checkbox';
+                            headerCheckbox.addEventListener('change', function () {
+                                const checkboxes = table.querySelectorAll('input[type="checkbox"]');
+                                checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+                                updateSelectedItems();
+                            });
+                            headerCell.appendChild(headerCheckbox);
+                            rows[0].appendChild(headerCell);
+                            const width = table.offsetWidth;
+                            if (width > maxWidth) {
+                                maxWidth = width;
+                            }
+                        }
+                        // Add a checkbox to each row
+                        rows.forEach((row, rowIndex) => {
+                            if (rowIndex > 0) {
+                                const cell = document.createElement('td');
+                                const checkbox = document.createElement('input');
+                                checkbox.type = 'checkbox';
+                                checkbox.addEventListener('change', updateSelectedItems);
+                                cell.appendChild(checkbox);
+                                row.appendChild(cell);
+                            }
+                        });
+                    });
+                    if (tables.length > 0) {
+                        // Append a textbox to display selected items
+                        const textbox = document.createElement('textarea');
+                        textbox.id = 'selectedItemsTextbox';
+                        textbox.style.width = '25%';
+                        textbox.style.height = '100px';
+                        textbox.style.marginTop = '20px';
+                        // insert the textbox after the url input and button
+                        // check if the textbox already exists and remove it if it does
+                        const existingTextbox = document.getElementById('selectedItemsTextbox');
+                        if (existingTextbox) {
+                            existingTextbox.remove();
+                        }
+                        // place the textbox after the Fetch and Modify Tables button
+                        const button = document.querySelector('button');
+                        button.parentNode.insertBefore(textbox, button.nextSibling);
+                    }
+
+
+
+                    // Display modified tables
+                    const displayArea = document.getElementById('contentArea');
+                    displayArea.innerHTML = ''; // Clear previous content
+                    tables.forEach(table => {
+                        displayArea.appendChild(table);
+                    });
+                } catch (error) {
+                    console.error('Fetch error: ', error);
+                    document.getElementById('contentArea').textContent = 'Failed to fetch content.';
+                }
+            }
+
+            function updateSelectedItems() {
+                const selectedItemsTextbox = document.getElementById('selectedItemsTextbox');
+                // Make sure to query only within the specific content area where your tables are located
+                const checkboxes = document.querySelectorAll('#contentArea .wikitable.sortable.filterable.item-drops input[type="checkbox"]:checked');
+                let items = [];
+                checkboxes.forEach(checkbox => {
+                    // Assuming the item name is in the first cell after the checkbox, adjust if necessary
+                    const row = checkbox.closest('tr');
+                    // This assumes the item name is in the second cell; adjust the index if necessary
+                    const itemCell = row.querySelector('td:nth-child(2)'); // Adjust if your item names are in a different column
+                    if (itemCell) {
+                        const itemName = itemCell.textContent.trim();
+                        items.push(itemName);
+                    }
+                });
+                selectedItemsTextbox.value = items.join(', ');
+            }
+        </script>
+    </h1>
+</body>
+
+</html>
