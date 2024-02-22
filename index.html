@@ -44,6 +44,11 @@
                         }
                     });
 
+                    doc.querySelectorAll('.wikitable.sortable.filterable.item-drops a').forEach(link => {
+                        const href = link.getAttribute('href');
+                        link.href = href.startsWith('http') ? href : `https://oldschool.runescape.wiki${href}`;
+                    });
+
                     // Extract tables and modify them
                     const tables = doc.querySelectorAll('.wikitable.sortable.filterable.item-drops');
                     let maxWidth = 0;
